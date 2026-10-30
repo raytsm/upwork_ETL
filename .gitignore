@@ -1,0 +1,53 @@
+# Airflow Config & DB
+airflow.cfg
+airflow.db
+airflow*.sqlite
+airflow-webserver.pid
+airflow-api-server.pid
+standalone_admin_password.txt
+variables.json
+
+# Artifacts & Logs
+logs/
+*.log
+*.pid
+warnings.txt
+
+# Environment & Python
+.env
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing & Linting
+.pytest_cache/
+.ruff-cache/
+.mypy_cache/
+.tox/
+htmlcov/
+.coverage
+
+# IDE & Editor
+.idea/
+*.iml
+.vscode/
+.vim/
+.emacs.desktop
+
+# Jupyter / Checkpoints
+.ipynb_checkpoints/
+
+# Terraform / Docker overrides if needed
+.terraform/
+
+.DS_Store
+
+include/data/raw_data/
