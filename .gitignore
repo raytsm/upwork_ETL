@@ -50,4 +50,4 @@ htmlcov/
 
 .DS_Store
 
-include/data/raw_data/
+include/data

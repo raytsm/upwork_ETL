@@ -14,8 +14,8 @@ from include.scripts.reconstruct import reconstruct
 )
 def upworkETL_dag():
     @task
-    def reconstruct_csv():
-        reconstruct()
+    def reconstruct_csv(file_name):
+        reconstruct(file_name)
         pass
 
     @task
@@ -30,7 +30,7 @@ def upworkETL_dag():
     def build_gold():
         pass
 
-    data = reconstruct_csv()
+    data = reconstruct_csv("upwork_combined_data.csv")
     bronze = build_bronze()
     silver = build_silver()
     gold = build_gold()
