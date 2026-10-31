@@ -3,6 +3,8 @@ import csv
 import io
 import re
 import time
+import json
+import ast
 
 
 # reconstruct.py is in include/scripts/, so parents[1] is the include/ folder.
@@ -102,7 +104,6 @@ def parse_prefix(prefix):
 def repair_record(raw_record):
     "parse each candidate record into 21 columns"
 
-    # first step: remove the line ending \n and/or \r
     if raw_record.endswith("\r\n"):
         record = raw_record[:-2]
     elif raw_record.endswith("\n") or raw_record.endswith("\r"):
@@ -110,7 +111,6 @@ def repair_record(raw_record):
     else:
         record = raw_record
 
-    # fow rows that is good, convert use normally
     try:
         parsed_records = list(
             csv.reader(
@@ -125,7 +125,6 @@ def repair_record(raw_record):
     except csv.Error:
         pass
 
-    # for records with empty json columns fix the quotation mark
     adjusted_record = ODD_QUOTE_PATTERN.sub(r'\1""', record)
     try:
         adjusted_rows = list(
@@ -150,7 +149,6 @@ def repair_record(raw_record):
     except csv.Error:
         pass
 
-    # for broken json columns with unescaped quotes
     end_matches = list(END_BOUNDARY.finditer(record))
     end_match = end_matches[0]
     possible_splits = []
@@ -159,26 +157,37 @@ def repair_record(raw_record):
         prefix = record[:start_match.start()]
         prefix_columns = parse_prefix(prefix)
 
-        if prefix_columns is None: # calls parse_prefix for everything before "{ characters, if it returns 15 columns & not None then we know it's start of json obj.
+        if prefix_columns is None:
             continue
 
         first_object_start = start_match.start() + 2
 
-        for middle_match in MIDDLE_BOUNDARY.finditer(record, first_object_start): # Now it searches for }", timestamp, timestamp, "{
+        for middle_match in MIDDLE_BOUNDARY.finditer(record, first_object_start):
             if middle_match.start() >= end_match.start():
                 continue
 
-            first_object = record[first_object_start:middle_match.start() + 1] # first json obj. including the closing }
+            first_object = record[first_object_start:middle_match.start() + 1]
 
             second_object_start = middle_match.end() - 1
-            second_object = record[second_object_start:end_match.start() + 1] # second json obj. including the closeing }
+            second_object = record[second_object_start:end_match.start() + 1]
+
+            # Convert Python dictionary strings safely into standard JSON strings
+            try:
+                clean_first_json = json.dumps(ast.literal_eval(first_object))
+            except Exception:
+                clean_first_json = first_object
+
+            try:
+                clean_second_json = json.dumps(ast.literal_eval(second_object))
+            except Exception:
+                clean_second_json = second_object
 
             row = (
                 prefix_columns + [
-                    first_object, # first json
-                    middle_match.group(1), # timestamps
+                    clean_first_json,
+                    middle_match.group(1),
                     middle_match.group(2),
-                    second_object, # second json
+                    clean_second_json,
                     end_match.group(1),
                     end_match.group(2),
                 ]
@@ -209,8 +218,7 @@ def reconstruct(file_name):
                 row = repair_record(raw_record)
                 writer.writerow(row)
                 accepted += 1
-                print(f"Accepted: {accepted}") # Writing csv takes time so printing rows slows it down or the csv file become haunted
-                # time.sleep(0.05)
+                print(f"Accepted: {accepted}")
             except:
                 rejected += 1
                 rej.write(
