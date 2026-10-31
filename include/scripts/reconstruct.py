@@ -33,6 +33,8 @@ END_BOUNDARY = re.compile(
     rf'\}}",({TIMESTAMP}),({TIMESTAMP})$'
 )
 
+ODD_QUOTE_PATTERN = re.compile(r"(?<!')('(?:'')*)\"")
+
 HEADERS = [
     "id",
     "url",
@@ -79,7 +81,7 @@ def parse_prefix(prefix):
     "Get all 15 records before the first json obj."
     variants = [
         prefix,
-        prefix.replace('\'"', '\'""'),
+        ODD_QUOTE_PATTERN.sub(r'\1""', prefix),
     ]
     for candidate in variants:
         try:
@@ -124,7 +126,7 @@ def repair_record(raw_record):
         pass
 
     # for records with empty json columns fix the quotation mark
-    adjusted_record = record.replace('\'"', '\'""')
+    adjusted_record = ODD_QUOTE_PATTERN.sub(r'\1""', record)
     try:
         adjusted_rows = list(
             csv.reader(
@@ -207,7 +209,8 @@ def reconstruct(file_name):
                 row = repair_record(raw_record)
                 writer.writerow(row)
                 accepted += 1
-                print(f"Accepted: {accepted}, Row: {row}")
+                print(f"Accepted: {accepted}") # Writing csv takes time so printing rows slows it down or the csv file become haunted
+                # time.sleep(0.05)
             except:
                 rejected += 1
                 rej.write(
@@ -222,4 +225,4 @@ def reconstruct(file_name):
     print(f"\nFinished | Accepted: {accepted:,} | Rejected: {rejected:,}")
     return str(output_file)
 
-reconstruct("upwork_combined_data.csv")
+# reconstruct("upwork_combined_data.csv")
